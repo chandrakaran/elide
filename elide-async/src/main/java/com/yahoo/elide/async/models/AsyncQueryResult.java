@@ -26,12 +26,14 @@ import javax.persistence.OneToOne;
  * Model for Async Query Result.
  */
 @Embeddable
+@Entity
 @Include(type = "asyncQueryResult")
 @ReadPermission(expression = "Principal is Owner")
 @UpdatePermission(expression = "Prefab.Role.None")
 @CreatePermission(expression = "Prefab.Role.None")
 @DeletePermission(expression = "Prefab.Role.None")
 @Data
+
 public class AsyncQueryResult extends AsyncBase implements PrincipalOwned {
     @Id
     @Column(columnDefinition = "varchar(36)")

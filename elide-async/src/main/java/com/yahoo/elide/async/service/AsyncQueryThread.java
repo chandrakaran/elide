@@ -54,7 +54,9 @@ public class AsyncQueryThread implements Runnable {
      * values for AsyncQuery and AsyncQueryResult models accordingly.
     */
     protected void processQuery() {
+    	
         try {
+        	//Thread.sleep(3000);
             // Change async query to processing
             asyncQueryDao.updateStatus(queryObj, QueryStatus.PROCESSING);
             ElideResponse response = null;

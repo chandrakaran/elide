@@ -5,6 +5,8 @@
  */
 package com.yahoo.elide.async.models;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.yahoo.elide.annotation.ComputedAttribute;
 import com.yahoo.elide.annotation.DeletePermission;
 import com.yahoo.elide.annotation.Exclude;
 import com.yahoo.elide.annotation.Include;
@@ -21,7 +23,9 @@ import javax.persistence.Id;
 import javax.persistence.OneToOne;
 import javax.persistence.PrePersist;
 import javax.persistence.Transient;
-import javax.validation.constraints.Size;
+import javax.validation.constraints.Max;
+
+import org.springframework.beans.factory.annotation.Value;
 
 /**
  * Model for Async Query.
@@ -37,17 +41,18 @@ import javax.validation.constraints.Size;
 public class AsyncQuery extends AsyncBase implements PrincipalOwned {
     @Id
     @Column(columnDefinition = "varchar(36)")
-    UUID id; //Provided by client or generated if missing on create.
+    private UUID id; //Provided by client or generated if missing on create.
 
     private String query;  //JSON-API PATH or GraphQL payload.
 
     private QueryType queryType; //GRAPHQL, JSONAPI
 
     @Transient
-    @Size(max=10)
-    Integer asyncAfterSeconds;
+    @Max(10)
+    @ComputedAttribute
+    private Integer asyncAfterSeconds = 10;
 
-    String requestId; //Client provided
+    private String requestId; //Client provided
     
     @UpdatePermission(expression = "Principal is Owner AND value is Cancelled")
     private QueryStatus status;
@@ -61,9 +66,11 @@ public class AsyncQuery extends AsyncBase implements PrincipalOwned {
     @PrePersist
     public void prePersistStatus() {
         status = QueryStatus.QUEUED;
+        System.out.println(id);
         if(id == null) {
         	id = UUID.randomUUID();
         }
+        System.out.println(id);
     }
 
     @Override

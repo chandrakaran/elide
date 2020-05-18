@@ -15,7 +15,6 @@ import com.yahoo.elide.security.User;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -92,6 +91,7 @@ public class AsyncExecutorService {
      * @param user User
      */
     public void executeQuery(AsyncQuery queryObj, User user, String apiVersion) {
+    	
         QueryRunner runner = runners.get(apiVersion);
         if (runner == null) {
             throw new InvalidOperationException("Invalid API Version");
@@ -100,7 +100,7 @@ public class AsyncExecutorService {
         Future<?> task = executor.submit(queryWorker);
         
         try {
-			task.get(10, TimeUnit.SECONDS);
+			task.get(queryObj.getAsyncAfterSeconds(), TimeUnit.SECONDS);
 		} catch (InterruptedException e) {
             // In case the future.get is interrupted , the underlying query may still have succeeded
             log.error("InterruptedException: {}", e);
@@ -109,6 +109,8 @@ public class AsyncExecutorService {
             log.error("ExecutionException: {}", e);
         } catch (TimeoutException e) {
             log.error("TimeoutException: {}", e);
+        } catch (NullPointerException e) {
+            log.error("NullPointerException: {}", e);
         }
 		/*
 		 * AsyncQueryInterruptThread queryInterruptWorker = new
