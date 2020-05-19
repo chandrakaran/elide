@@ -32,7 +32,7 @@ import java.util.Set;
  */
 public class DynamicConfigHelpers {
 
-    public static final String TABLE_CONFIG_PATH = "tables/";
+    public static final String TABLE_CONFIG_PATH = "tables" + File.separator;
     public static final String SECURITY_CONFIG_PATH = "security.hjson";
     public static final String VARIABLE_CONFIG_PATH = "variables.hjson";
     public static final String NEW_LINE = "\n";

@@ -10,107 +10,111 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
+
+import org.apache.commons.cli.MissingArgumentException;
+import org.apache.commons.cli.MissingOptionException;
+import org.hjson.ParseException;
 import org.junit.jupiter.api.Test;
 
 public class DynamicConfigValidatorTest {
 
     @Test
     public void testNoArgumnents() {
-        Exception e = assertThrows(IllegalStateException.class, () -> DynamicConfigValidator.main(null));
-        assertEquals("No Arguments provided!", e.getMessage());
+        Exception e = assertThrows(MissingOptionException.class, () -> DynamicConfigValidator.main(null));
+        assertTrue(e.getMessage().startsWith("Missing required option"));
     }
 
     @Test
     public void testOneEmptyArgumnents() {
-        Exception e = assertThrows(IllegalStateException.class, () -> DynamicConfigValidator.main(new String[] { "" }));
-        assertEquals("Expecting One non-empty argument only!", e.getMessage());
+        Exception e = assertThrows(MissingOptionException.class,
+                () -> DynamicConfigValidator.main(new String[] { "" }));
+        assertTrue(e.getMessage().startsWith("Missing required option"));
     }
 
     @Test
-    public void testMultipleArgumnents() {
-        Exception e = assertThrows(IllegalStateException.class,
-                () -> DynamicConfigValidator.main(new String[] { "", "" }));
-        assertEquals("Expecting One non-empty argument only!", e.getMessage());
+    public void testMissingArgumnentValue() {
+        Exception e = assertThrows(MissingArgumentException.class,
+                () -> DynamicConfigValidator.main(new String[] { "--configDir" }));
+        assertTrue(e.getMessage().startsWith("Missing argument for option"));
     }
 
     @Test
     public void testMissingConfigDir() {
-        Exception e = assertThrows(IllegalStateException.class,
-                () -> DynamicConfigValidator.main(new String[] { "src/test/resources/validator/missing" }));
+        Exception e = assertThrows(IllegalStateException.class, () -> DynamicConfigValidator
+                .main(new String[] { "--configDir", "src/test/resources/validator/missing" }));
         assertEquals("Model Configs Directory doesn't exists", e.getMessage());
     }
 
     @Test
     public void testValidConfigDir() {
-        assertDoesNotThrow(() -> DynamicConfigValidator.main(new String[] { "src/test/resources/validator/valid" }));
+        assertDoesNotThrow(() -> DynamicConfigValidator
+                .main(new String[] { "--configDir", "src/test/resources/validator/valid" }));
     }
 
     @Test
     public void testMissingVariableConfig() {
-        assertDoesNotThrow(
-                () -> DynamicConfigValidator.main(new String[] { "src/test/resources/validator/missing_variable" }));
+        assertDoesNotThrow(() -> DynamicConfigValidator
+                .main(new String[] { "--configDir", "src/test/resources/validator/missing_variable" }));
     }
 
     @Test
     public void testMissingSecurityConfig() {
-        assertDoesNotThrow(
-                () -> DynamicConfigValidator.main(new String[] { "src/test/resources/validator/missing_security" }));
+        assertDoesNotThrow(() -> DynamicConfigValidator
+                .main(new String[] { "--configDir", "src/test/resources/validator/missing_security" }));
     }
 
     @Test
     public void testMissingTableDir() {
-        Exception e = assertThrows(IllegalStateException.class,
-                () -> DynamicConfigValidator.main(new String[] { "src/test/resources/validator/missing_table_dir" }));
+        Exception e = assertThrows(IllegalStateException.class, () -> DynamicConfigValidator
+                .main(new String[] { "--configDir", "src/test/resources/validator/missing_table_dir" }));
         assertTrue(e.getMessage().startsWith("Table Configs Directory doesn't exists at location"));
     }
 
     @Test
     public void testMissingTableConfig() {
-        Exception e = assertThrows(IllegalStateException.class,
-                () -> DynamicConfigValidator.main(new String[] { "src/test/resources/validator/missing_table" }));
+        Exception e = assertThrows(IllegalStateException.class, () -> DynamicConfigValidator
+                .main(new String[] { "--configDir", "src/test/resources/validator/missing_table" }));
         assertTrue(e.getMessage().startsWith("No Table Configs found at location"));
     }
 
     @Test
     public void testBadVariableConfig() {
-        Exception e = assertThrows(IllegalStateException.class,
-                () -> DynamicConfigValidator.main(new String[] { "src/test/resources/validator/bad_variable" }));
-        assertTrue(e.getMessage().startsWith("Error while parsing variable config at location"));
+        assertThrows(ParseException.class, () -> DynamicConfigValidator
+                .main(new String[] { "--configDir", "src/test/resources/validator/bad_variable" }));
     }
 
     @Test
     public void testBadSecurityConfig() {
-        Exception e = assertThrows(IllegalStateException.class,
-                () -> DynamicConfigValidator.main(new String[] { "src/test/resources/validator/bad_security" }));
-        assertTrue(e.getMessage().startsWith("Error while parsing security config at location"));
+        assertThrows(ParseException.class, () -> DynamicConfigValidator
+                .main(new String[] { "--configDir", "src/test/resources/validator/bad_security" }));
     }
 
     @Test
     public void testBadSecurityRoleConfig() {
-        Exception e = assertThrows(IllegalStateException.class,
-                () -> DynamicConfigValidator.main(new String[] { "src/test/resources/validator/bad_security_role" }));
+        Exception e = assertThrows(IllegalStateException.class, () -> DynamicConfigValidator
+                .main(new String[] { "--configDir", "src/test/resources/validator/bad_security_role" }));
         assertEquals(e.getMessage(), "ROLE provided in security config contain one of these words: [,]");
     }
 
     @Test
     public void testBadTableConfigJoinType() {
-        Exception e = assertThrows(IllegalStateException.class,
-                () -> DynamicConfigValidator.main(new String[] { "src/test/resources/validator/bad_table_join_type" }));
-        assertTrue(e.getMessage().startsWith("Error while parsing table config at location"));
+        assertThrows(ValueInstantiationException.class, () -> DynamicConfigValidator
+                .main(new String[] { "--configDir", "src/test/resources/validator/bad_table_join_type" }));
     }
 
     @Test
     public void testBadTableConfigSQL() {
-        Exception e = assertThrows(IllegalStateException.class,
-                () -> DynamicConfigValidator.main(new String[] { "src/test/resources/validator/bad_table_sql" }));
-        assertEquals(e.getMessage(),
-                "SQL provided in table config contain one of these words: [DROP , TRUNCATE , DELETE , INSERT , UPDATE ]");
+        Exception e = assertThrows(IllegalStateException.class, () -> DynamicConfigValidator
+                .main(new String[] { "--configDir", "src/test/resources/validator/bad_table_sql" }));
+        assertTrue(e.getMessage()
+                .startsWith("sql/definition provided in table config contain either ';' or one of these words"));
     }
 
     @Test
     public void testUndefinedVariable() {
-        Exception e = assertThrows(IllegalStateException.class,
-                () -> DynamicConfigValidator.main(new String[] { "src/test/resources/validator/undefined_handlebar" }));
+        Exception e = assertThrows(IllegalStateException.class, () -> DynamicConfigValidator
+                .main(new String[] { "--configDir", "src/test/resources/validator/undefined_handlebar" }));
         assertEquals(e.getMessage(),
                 "foobar is used as a variable in either table or security config files but is not defined in variables config file.");
     }

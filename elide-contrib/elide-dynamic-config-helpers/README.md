@@ -2,12 +2,14 @@
 
 Validate the config files in local before deployment.
 
-Sample command:
-```java
-Usage: java -cp <Jar File Name> com.yahoo.elide.contrib.dynamicconfighelpers.validator.DynamicConfigValidator <Path for Model Configs Directory>
+To build and run:
+```text
+1. mvn clean install
+2. Look for Jar File under elide-contrib/elide-dynamic-config-helpers/target directory with name matching "elide-dynamic-config-*-jar-with-dependencies.jar"
+3. java -cp <Jar File Name> com.yahoo.elide.contrib.dynamicconfighelpers.validator.DynamicConfigValidator <Path for Model Configs Directory>
 ```
 Expected Model Configs Directory Structure:
-```java
+```text
 ├── MODEL_CONFIG_DIR/
 │   ├── tables
 │   │   ├── table1.hjson
