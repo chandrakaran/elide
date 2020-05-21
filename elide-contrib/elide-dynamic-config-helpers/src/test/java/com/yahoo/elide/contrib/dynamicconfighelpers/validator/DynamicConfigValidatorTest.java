@@ -20,6 +20,12 @@ import org.junit.jupiter.api.Test;
 public class DynamicConfigValidatorTest {
 
     @Test
+    public void testHelpArgumnents() {
+        assertDoesNotThrow(() -> DynamicConfigValidator.main(new String[] { "-h" }));
+        assertDoesNotThrow(() -> DynamicConfigValidator.main(new String[] { "--help" }));
+    }
+
+    @Test
     public void testNoArgumnents() {
         Exception e = assertThrows(MissingOptionException.class, () -> DynamicConfigValidator.main(null));
         assertTrue(e.getMessage().startsWith("Missing required option"));
@@ -36,6 +42,8 @@ public class DynamicConfigValidatorTest {
     public void testMissingArgumnentValue() {
         Exception e = assertThrows(MissingArgumentException.class,
                 () -> DynamicConfigValidator.main(new String[] { "--configDir" }));
+        assertTrue(e.getMessage().startsWith("Missing argument for option"));
+        e = assertThrows(MissingArgumentException.class, () -> DynamicConfigValidator.main(new String[] { "-c" }));
         assertTrue(e.getMessage().startsWith("Missing argument for option"));
     }
 

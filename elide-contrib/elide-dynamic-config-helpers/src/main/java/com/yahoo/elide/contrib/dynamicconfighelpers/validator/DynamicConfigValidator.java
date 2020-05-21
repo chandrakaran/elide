@@ -18,6 +18,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
@@ -52,6 +53,7 @@ public class DynamicConfigValidator {
     private static final String SQL_SPLIT_REGEX = "\\s+";
     private static final String SEMI_COLON = ";";
     private static final Pattern HANDLEBAR_REGEX = Pattern.compile("<%(.*?)%>");
+    private static final Options OPTIONS = prepareOptions();
 
     private ElideTableConfig elideTableConfig;
     private ElideSecurityConfig elideSecurityConfig;
@@ -60,11 +62,16 @@ public class DynamicConfigValidator {
 
     public static void main(String[] args) throws IOException, ParseException {
 
-        Options options = new Options();
-        defineArgs(options);
-        usage(options);
-        CommandLine cli = new DefaultParser().parse(options, args);
+        CommandLine cli = new DefaultParser().parse(OPTIONS, args);
 
+        if (cli.hasOption("help")) {
+            printHelp();
+            return;
+        }
+        if (!cli.hasOption("configDir")) {
+            printHelp();
+            throw new MissingOptionException("Missing required option");
+        }
         String configDir = cli.getOptionValue("configDir");
         File file = new File(configDir);
         String absoluteBasePath = DynamicConfigHelpers.formatFilePath(file.getAbsolutePath());
@@ -195,9 +202,8 @@ public class DynamicConfigValidator {
     private static void validateSql(String sqlDefinition) {
         if (!DynamicConfigHelpers.isNullOrEmpty(sqlDefinition) && (sqlDefinition.contains(SEMI_COLON)
                 || containsDisallowedWords(sqlDefinition, SQL_SPLIT_REGEX, SQL_DISALLOWED_WORDS))) {
-            throw new IllegalStateException(
-                    "sql/definition provided in table config contain either ';' or one of these words: "
-                            + Arrays.toString(SQL_DISALLOWED_WORDS.toArray()));
+            throw new IllegalStateException("sql/definition provided in table config contain either '" + SEMI_COLON
+                    + "' or one of these words: " + Arrays.toString(SQL_DISALLOWED_WORDS.toArray()));
         }
     }
 
@@ -243,8 +249,10 @@ public class DynamicConfigValidator {
     /**
      * Define Arguments.
      */
-    private static void defineArgs(Options options) {
-        Option configDirOption = new Option("c", "configDir", true,
+    private static final Options prepareOptions() {
+        Options options = new Options();
+        options.addOption(new Option("h", "help", false, "Print a help message and exit."));
+        options.addOption(new Option("c", "configDir", true,
                 "Path for Model Configs Directory.\n"
                 + "Expected Directory Structure:\n"
                 + "./security.hjson(optional)\n"
@@ -252,16 +260,17 @@ public class DynamicConfigValidator {
                 + "./tables/\n"
                 + "./tables/table1.hjson\n"
                 + "./tables/table2.hjson\n"
-                + "./tables/tableN.hjson\n");
-        configDirOption.setRequired(true);
-        options.addOption(configDirOption);
+                + "./tables/tableN.hjson\n"));
+        return options;
     }
 
     /**
-     * Print Usage.
+     * Print Help.
      */
-    private static void usage(Options options) {
+    private static void printHelp() {
         HelpFormatter formatter = new HelpFormatter();
-        formatter.printHelp("Dynamic Config Validator", options);
+        formatter.printHelp(
+                "java -cp <Jar File> com.yahoo.elide.contrib.dynamicconfighelpers.validator.DynamicConfigValidator",
+                OPTIONS);
     }
 }
