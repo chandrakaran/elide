@@ -12,6 +12,7 @@ import com.yahoo.elide.ElideSettingsBuilder;
 import com.yahoo.elide.Injector;
 import com.yahoo.elide.annotation.SecurityCheck;
 import com.yahoo.elide.async.service.AsyncQueryDAO;
+import com.yahoo.elide.async.service.ResultStorageEngine;
 import com.yahoo.elide.audit.AuditLogger;
 import com.yahoo.elide.audit.Slf4jLogger;
 import com.yahoo.elide.contrib.dynamicconfighelpers.compile.ElideDynamicEntityCompiler;
@@ -61,7 +62,7 @@ import javax.persistence.EntityManagerFactory;
 public interface ElideStandaloneSettings {
     /* Elide settings */
 
-     public final Consumer<EntityManager> TXCANCEL = (em) -> { em.unwrap(Session.class).cancelQuery(); };
+    public final Consumer<EntityManager> TXCANCEL = (em) -> { em.unwrap(Session.class).cancelQuery(); };
 
     /**
      * A map containing check mappings for security across Elide. If not provided, then an empty map is used.
@@ -244,6 +245,24 @@ public interface ElideStandaloneSettings {
     }
 
     /**
+     * Implementation of ResultStorageEngine to use.
+     *
+     * @return ResultStorageEngine type object.
+     */
+    default ResultStorageEngine getResultStorageEngine() {
+        return null;
+    }
+
+    /**
+     * Generates a default a baseURL.
+     *
+     * @return a URL in String format.
+     */
+    default String getAsyncDownloadBaseURL() {
+        return "http://localhost:8080";
+    }
+
+    /**
      * Whether Dates should be ISO8601 strings (true) or epochs (false).
      * @return whether ISO8601Dates are enabled.
      */
@@ -400,7 +419,7 @@ public interface ElideStandaloneSettings {
      * @return EntityDictionary object initialized.
      */
     default DataStore getDataStore(MetaDataStore metaDataStore, AggregationDataStore aggregationDataStore,
-            EntityManagerFactory entityManagerFactory) {
+        EntityManagerFactory entityManagerFactory) {
         DataStore jpaDataStore = new JpaDataStore(
                 () -> { return entityManagerFactory.createEntityManager(); },
                 (em) -> { return new NonJtaTransaction(em, TXCANCEL); });
@@ -417,7 +436,7 @@ public interface ElideStandaloneSettings {
      * @return AggregationDataStore object initialized.
      */
     default AggregationDataStore getAggregationDataStore(QueryEngine queryEngine,
-            Optional<ElideDynamicEntityCompiler> optionalCompiler) {
+        Optional<ElideDynamicEntityCompiler> optionalCompiler) {
         AggregationDataStore.AggregationDataStoreBuilder aggregationDataStoreBuilder = AggregationDataStore.builder()
                 .queryEngine(queryEngine);
 
@@ -437,7 +456,7 @@ public interface ElideStandaloneSettings {
      * @return EntityDictionary object initialized.
      */
     default EntityDictionary getEntityDictionary(ServiceLocator injector,
-            Optional<ElideDynamicEntityCompiler> optionalCompiler) {
+        Optional<ElideDynamicEntityCompiler> optionalCompiler) {
         EntityDictionary dictionary = new EntityDictionary(getCheckMappings(),
                 new Injector() {
                     @Override
@@ -492,7 +511,7 @@ public interface ElideStandaloneSettings {
     }
 
     static Set<Class<?>> getDynamicClassesIfAvailable(Optional<ElideDynamicEntityCompiler> optionalCompiler,
-            Class<?> classz) {
+        Class<?> classz) {
         Set<Class<?>> annotatedClasses = new HashSet<Class<?>>();
 
         if (!optionalCompiler.isPresent()) {
