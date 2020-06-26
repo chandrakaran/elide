@@ -47,6 +47,7 @@ public class AsyncQueryThread implements Callable<AsyncQueryResult> {
     private final QueryRunner runner;
     private AsyncQueryDAO asyncQueryDao;
     private String apiVersion;
+    private ResultStorageEngine resultStorageEngine;
 
     @Override
     public AsyncQueryResult call() throws NoHttpResponseException, URISyntaxException {
@@ -110,6 +111,9 @@ public class AsyncQueryThread implements Callable<AsyncQueryResult> {
         queryResultObj.setRecordCount(recCount);
         queryResultObj.setResultType(ResultType.EMBEDDED);
         queryResultObj.setCompletedOn(new Date());
+
+        resultStorageEngine = new DefaultResultStorageEngine();
+        resultStorageEngine.storeResults(queryObj.getId(), response.getBody());
 
         return queryResultObj;
     }

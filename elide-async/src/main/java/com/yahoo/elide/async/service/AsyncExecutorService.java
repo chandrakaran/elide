@@ -46,6 +46,7 @@ public class AsyncExecutorService {
     private int maxRunTime;
     private AsyncQueryDAO asyncQueryDao;
     private static AsyncExecutorService asyncExecutorService = null;
+    private ResultStorageEngine resultStorageEngine;
     @Inject
     private AsyncExecutorService(Elide elide, Integer threadPoolSize, Integer maxRunTime, AsyncQueryDAO asyncQueryDao) {
         this.elide = elide;
@@ -97,7 +98,8 @@ public class AsyncExecutorService {
         if (runner == null) {
             throw new InvalidOperationException("Invalid API Version");
         }
-        AsyncQueryThread queryWorker = new AsyncQueryThread(queryObj, user, elide, runner, asyncQueryDao, apiVersion);
+        AsyncQueryThread queryWorker = new AsyncQueryThread(queryObj, user, elide, runner, asyncQueryDao,
+                apiVersion);
         Future<AsyncQueryResult> task = executor.submit(queryWorker);
         try {
             queryObj.setStatus(QueryStatus.PROCESSING);
