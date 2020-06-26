@@ -19,10 +19,7 @@ import com.yahoo.elide.async.hooks.UpdatePrincipalNameHook;
 import com.yahoo.elide.async.integration.tests.AsyncIT;
 import com.yahoo.elide.async.models.AsyncQuery;
 import com.yahoo.elide.async.models.security.AsyncQueryOperationChecks;
-import com.yahoo.elide.async.service.AsyncCleanerService;
-import com.yahoo.elide.async.service.AsyncExecutorService;
-import com.yahoo.elide.async.service.AsyncQueryDAO;
-import com.yahoo.elide.async.service.DefaultAsyncQueryDAO;
+import com.yahoo.elide.async.service.*;
 import com.yahoo.elide.audit.InMemoryLogger;
 import com.yahoo.elide.core.EntityDictionary;
 import com.yahoo.elide.core.filter.dialect.DefaultFilterDialect;
@@ -83,7 +80,10 @@ public class AsyncIntegrationTestApplicationResourceConfig extends ResourceConfi
                 AsyncQueryDAO asyncQueryDao = new DefaultAsyncQueryDAO(elide, elide.getDataStore());
                 bind(asyncQueryDao).to(AsyncQueryDAO.class);
 
-                AsyncExecutorService.init(elide, 5, 60, asyncQueryDao);
+                ResultStorageEngine resultStorageEngine = new DefaultResultStorageEngine(elide, elide.getDataStore(), "http://localhost:8080");
+                bind(resultStorageEngine).to(ResultStorageEngine.class);
+
+                AsyncExecutorService.init(elide, 5, 60, asyncQueryDao, resultStorageEngine);
                 bind(AsyncExecutorService.getInstance()).to(AsyncExecutorService.class);
 
                 BillingService billingService = new BillingService() {
@@ -108,7 +108,7 @@ public class AsyncIntegrationTestApplicationResourceConfig extends ResourceConfi
                 dictionary.bindTrigger(Invoice.class, "complete", CREATE, PRECOMMIT, invoiceCompletionHook);
                 dictionary.bindTrigger(Invoice.class, "complete", UPDATE, PRECOMMIT, invoiceCompletionHook);
 
-                AsyncCleanerService.init(elide, 60, 5, asyncQueryDao);
+                AsyncCleanerService.init(elide, 60, 5, asyncQueryDao, resultStorageEngine);
                 bind(AsyncCleanerService.getInstance()).to(AsyncCleanerService.class);
             }
         });
