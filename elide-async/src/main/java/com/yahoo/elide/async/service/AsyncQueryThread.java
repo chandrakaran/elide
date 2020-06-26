@@ -17,6 +17,8 @@ import com.yahoo.elide.security.User;
 import org.apache.http.NameValuePair;
 import org.apache.http.NoHttpResponseException;
 import org.apache.http.client.utils.URIBuilder;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -72,6 +74,7 @@ public class AsyncQueryThread implements Callable<AsyncQueryResult> {
     protected AsyncQueryResult processQuery() throws URISyntaxException, NoHttpResponseException {
 
         ElideResponse response = null;
+        Integer recCount = null;
         log.debug("AsyncQuery Object from request: {}", queryObj);
         if (queryObj.getQueryType().equals(QueryType.JSONAPI_V1_0)) {
             MultivaluedMap<String, String> queryParams = getQueryParams(queryObj.getQuery());
@@ -79,11 +82,20 @@ public class AsyncQueryThread implements Callable<AsyncQueryResult> {
             response = elide.get(getPath(queryObj.getQuery()), queryParams, user, apiVersion);
             log.debug("JSONAPI_V1_0 getResponseCode: {}, JSONAPI_V1_0 getBody: {}",
                     response.getResponseCode(), response.getBody());
+
+            if (response.getResponseCode() == 200) {
+                recCount = calculateRecordsJSON(response.getBody());
+            }
         }
         else if (queryObj.getQueryType().equals(QueryType.GRAPHQL_V1_0)) {
             response = runner.run(queryObj.getQuery(), user);
             log.debug("GRAPHQL_V1_0 getResponseCode: {}, GRAPHQL_V1_0 getBody: {}",
                     response.getResponseCode(), response.getBody());
+
+            if (response.getResponseCode() == 200) {
+                String tableName = getTableNameFromQuery(queryObj.getQuery());
+                recCount = calculateRecordsGRAPHQL(response.getBody(), tableName);
+            }
         }
         if (response == null) {
             throw new NoHttpResponseException("Response for request returned as null");
@@ -95,10 +107,78 @@ public class AsyncQueryThread implements Callable<AsyncQueryResult> {
         queryResultObj.setHttpStatus(response.getResponseCode());
         queryResultObj.setResponseBody(response.getBody());
         queryResultObj.setContentLength(response.getBody().length());
+        queryResultObj.setRecordCount(recCount);
         queryResultObj.setResultType(ResultType.EMBEDDED);
         queryResultObj.setCompletedOn(new Date());
 
         return queryResultObj;
+    }
+
+    /**
+     * This method calculates the number of records from the response with JSON API.
+     * @param jsonStr is the response.getBody() we get from the response
+     * @return rec is the recordCount
+     */
+    protected Integer calculateRecordsJSON(String jsonStr) {
+        Integer rec;
+        try {
+            JSONObject j = new JSONObject(jsonStr);
+            rec = j.getJSONArray("data").length();
+
+        } catch (JSONException e) {
+            rec = null;
+        }
+        return rec;
+    }
+
+    /**
+     * This method calculates the number of records from the response with GRAPHQL API.
+     * @param response is the response.getBody() we get from the response
+     * @param table_name is the table from which we extract the data
+     * @return rec is the recordCount
+     */
+    protected Integer calculateRecordsGRAPHQL(String response, String table_name) {
+        Integer rec;
+        try {
+            JSONObject j = new JSONObject(response);
+            JSONObject j2 = j.getJSONObject("data");
+            JSONObject j3 = j2.getJSONObject(table_name);
+            rec = j3.getJSONArray("edges").length();
+
+        } catch (JSONException e) {
+            rec = null;
+        }
+        return rec;
+    }
+
+    /**
+     * This method helps to extract the table name from the query.
+     * @param jsonStr is the query with which we are extracting the data
+     * @return the table name from the above query
+     */
+    protected String getTableNameFromQuery(String jsonStr) {
+        StringBuilder str = new StringBuilder();
+        try {
+            JSONObject j = new JSONObject(jsonStr);
+            String s = (String) j.get("query");
+
+            Integer countBrackets = 0;
+            for (int i = 0; i < s.length(); i++) {
+                if (s.charAt(i) == '{' || s.charAt(i) == '}') {
+                    countBrackets++;
+                    if (countBrackets == 2) {
+                        break;
+                    }
+                }
+                else {
+                    str.append(s.charAt(i));
+                }
+            }
+        } catch (JSONException e) {
+            log.error("Exception: {}", e);
+
+        }
+        return str.toString().trim().split("\\s+")[0];
     }
 
     /**
