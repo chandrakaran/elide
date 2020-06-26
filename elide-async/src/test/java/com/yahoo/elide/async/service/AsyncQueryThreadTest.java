@@ -74,4 +74,25 @@ public class AsyncQueryThreadTest {
         assertEquals(queryResultObj.getResponseBody(), "ResponseBody");
         assertEquals(queryResultObj.getHttpStatus(), 200);
     }
+
+    @Test
+    public void testConvertJsonToCSV() {
+
+        String csvStr = "[/key][\"value\"]";
+        String jsonStr = "{\"key\":\"value\"}";
+
+        AsyncQuery queryObj = new AsyncQuery();
+        ElideResponse response = new ElideResponse(200, "ResponseBody");
+        String query = "/group?sort=commonName&fields%5Bgroup%5D=commonName,description";
+        String id = "edc4a871-dff2-4054-804e-d80075cf827d";
+        queryObj.setId(id);
+        queryObj.setQuery(query);
+        queryObj.setQueryType(QueryType.JSONAPI_V1_0);
+        when(elide.get(anyString(), any(), any(), anyString())).thenReturn(response);
+        AsyncQueryThread queryThread = new AsyncQueryThread(queryObj, user, elide, runner, asyncQueryDao, "v1");
+
+        String jsonToCSV = queryThread.convertJsonToCSV(jsonStr);
+
+        assertEquals(jsonToCSV, csvStr);
+    }
 }
