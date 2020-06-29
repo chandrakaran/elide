@@ -12,6 +12,7 @@ import com.yahoo.elide.ElideSettingsBuilder;
 import com.yahoo.elide.Injector;
 import com.yahoo.elide.annotation.SecurityCheck;
 import com.yahoo.elide.async.service.AsyncQueryDAO;
+import com.yahoo.elide.async.service.ResultStorageEngine;
 import com.yahoo.elide.audit.AuditLogger;
 import com.yahoo.elide.audit.Slf4jLogger;
 import com.yahoo.elide.contrib.dynamicconfighelpers.compile.ElideDynamicEntityCompiler;
@@ -241,6 +242,24 @@ public interface ElideStandaloneSettings {
      */
     default AsyncQueryDAO getAsyncQueryDAO() {
         return null;
+    }
+
+    /**
+     * Implementation of ResultStorageEngine to use.
+     *
+     * @return ResultStorageEngine type object.
+     */
+    default ResultStorageEngine getResultStorageEngine() {
+        return null;
+    }
+
+    /**
+     * Generates a default a baseURL.
+     *
+     * @return a URL in String format.
+     */
+    default String getBaseURL() {
+        return "http://localhost:8080";
     }
 
     /**

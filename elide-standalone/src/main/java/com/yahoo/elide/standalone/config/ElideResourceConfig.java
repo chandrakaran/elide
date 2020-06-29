@@ -17,10 +17,7 @@ import com.yahoo.elide.async.hooks.CompleteQueryHook;
 import com.yahoo.elide.async.hooks.ExecuteQueryHook;
 import com.yahoo.elide.async.hooks.UpdatePrincipalNameHook;
 import com.yahoo.elide.async.models.AsyncQuery;
-import com.yahoo.elide.async.service.AsyncCleanerService;
-import com.yahoo.elide.async.service.AsyncExecutorService;
-import com.yahoo.elide.async.service.AsyncQueryDAO;
-import com.yahoo.elide.async.service.DefaultAsyncQueryDAO;
+import com.yahoo.elide.async.service.*;
 import com.yahoo.elide.contrib.dynamicconfighelpers.compile.ElideDynamicEntityCompiler;
 import com.yahoo.elide.contrib.swagger.resources.DocEndpoint;
 import com.yahoo.elide.core.DataStore;
@@ -132,8 +129,15 @@ public class ElideResourceConfig extends ResourceConfig {
                     }
                     bind(asyncQueryDao).to(AsyncQueryDAO.class);
 
+                    ResultStorageEngine resultStorageEngine = settings.getResultStorageEngine();
+                    if (resultStorageEngine == null) {
+                        resultStorageEngine = new DefaultResultStorageEngine(asyncElide, asyncElide.getDataStore(),
+                                settings.getBaseURL());
+                    }
+                    bind(asyncQueryDao).to(AsyncQueryDAO.class);
+
                     AsyncExecutorService.init(elide, settings.getAsyncThreadSize(),
-                            settings.getAsyncMaxRunTimeMinutes(), asyncQueryDao);
+                            settings.getAsyncMaxRunTimeMinutes(), asyncQueryDao, resultStorageEngine);
                     bind(AsyncExecutorService.getInstance()).to(AsyncExecutorService.class);
 
                     // Binding AsyncQuery LifeCycleHook

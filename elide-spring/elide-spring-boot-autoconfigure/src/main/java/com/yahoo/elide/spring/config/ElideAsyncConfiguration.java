@@ -17,10 +17,7 @@ import com.yahoo.elide.async.hooks.CompleteQueryHook;
 import com.yahoo.elide.async.hooks.ExecuteQueryHook;
 import com.yahoo.elide.async.hooks.UpdatePrincipalNameHook;
 import com.yahoo.elide.async.models.AsyncQuery;
-import com.yahoo.elide.async.service.AsyncCleanerService;
-import com.yahoo.elide.async.service.AsyncExecutorService;
-import com.yahoo.elide.async.service.AsyncQueryDAO;
-import com.yahoo.elide.async.service.DefaultAsyncQueryDAO;
+import com.yahoo.elide.async.service.*;
 import com.yahoo.elide.core.EntityDictionary;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -54,9 +51,9 @@ public class ElideAsyncConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public AsyncExecutorService buildAsyncExecutorService(Elide elide, ElideConfigProperties settings,
-            AsyncQueryDAO asyncQueryDao, EntityDictionary dictionary) {
+            AsyncQueryDAO asyncQueryDao, EntityDictionary dictionary, ResultStorageEngine resultStorageEngine) {
         AsyncExecutorService.init(elide, settings.getAsync().getThreadPoolSize(),
-                settings.getAsync().getMaxRunTimeMinutes(), asyncQueryDao);
+                settings.getAsync().getMaxRunTimeMinutes(), asyncQueryDao, resultStorageEngine);
         AsyncExecutorService asyncExecutorService = AsyncExecutorService.getInstance();
 
         // Binding AsyncQuery LifeCycleHook
@@ -104,5 +101,24 @@ public class ElideAsyncConfiguration {
                 .build();
         Elide asyncElide = new Elide(asyncElideSettings);
         return new DefaultAsyncQueryDAO(asyncElide, asyncElide.getDataStore());
+    }
+
+    /**
+     * Configure the AsyncQueryDAO used by async query requests.
+     * @param elide elideObject.
+     * @return an AsyncQueryDAO object.
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "elide.async", name = "defaultResultStorageEngine", matchIfMissing = true)
+    public ResultStorageEngine buildResultStorageEngine(Elide elide) {
+        // Creating a new ElideSettings and Elide object for Async services
+        // which will have ISO8601 Dates. Used for DefaultAsyncQueryDAO.
+        ElideSettings asyncElideSettings = new ElideSettingsBuilder(elide.getDataStore())
+                .withEntityDictionary(elide.getElideSettings().getDictionary())
+                .withISO8601Dates("yyyy-MM-dd'T'HH:mm'Z'", TimeZone.getTimeZone("UTC"))
+                .build();
+        Elide asyncElide = new Elide(asyncElideSettings);
+        return new DefaultResultStorageEngine(asyncElide, asyncElide.getDataStore(), "http://localhost:8080");
     }
 }

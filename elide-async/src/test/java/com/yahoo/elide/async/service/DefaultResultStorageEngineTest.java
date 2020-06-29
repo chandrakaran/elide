@@ -26,7 +26,7 @@ import com.yahoo.elide.security.checks.Check;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-
+import java.net.URL;
 import java.sql.Blob;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -72,7 +72,7 @@ public class DefaultResultStorageEngineTest {
         when(dataStore.beginTransaction()).thenReturn(tx);
 
         asyncQueryDAO = new DefaultAsyncQueryDAO(elide, dataStore);
-        defaultResultStorageEngine = new DefaultResultStorageEngine(elide, dataStore);
+        defaultResultStorageEngine = new DefaultResultStorageEngine(elide, dataStore, "http://localhost:8080");
     }
 
     @Test
@@ -86,13 +86,11 @@ public class DefaultResultStorageEngineTest {
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
-        AsyncQueryResultStorage storeResultsOutput = defaultResultStorageEngine.storeResults(
-                asyncQueryResultStorage.getId(), responseBody);
 
-        assertEquals(asyncQueryResultStorage.getId(), storeResultsOutput.getId());
-        assertEquals(result, storeResultsOutput.getResult());
+        URL url = defaultResultStorageEngine.storeResults(
+                     asyncQueryResultStorage.getId(), responseBody);
 
-
+        assertEquals(url.getClass(), URL.class);
     }
 
     @Test

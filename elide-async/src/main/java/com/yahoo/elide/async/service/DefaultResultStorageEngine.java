@@ -6,22 +6,14 @@
 
 package com.yahoo.elide.async.service;
 
-import static com.yahoo.elide.core.EntityDictionary.NO_VERSION;
-
 import com.yahoo.elide.Elide;
 import com.yahoo.elide.async.models.AsyncQueryResultStorage;
 import com.yahoo.elide.core.DataStore;
-import com.yahoo.elide.core.DataStoreTransaction;
-import com.yahoo.elide.core.EntityDictionary;
-import com.yahoo.elide.core.RequestScope;
-import com.yahoo.elide.core.filter.dialect.RSQLFilterDialect;
-import com.yahoo.elide.jsonapi.models.JsonApiDocument;
 import com.yahoo.elide.request.EntityProjection;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Blob;
@@ -31,8 +23,6 @@ import java.util.Iterator;
 
 import javax.inject.Singleton;
 import javax.sql.rowset.serial.SerialBlob;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
 
 /**
  * Utility class which implements ResultStorageEngine.
@@ -44,19 +34,19 @@ public class DefaultResultStorageEngine implements ResultStorageEngine {
 
     @Setter private Elide elide;
     @Setter private DataStore dataStore;
-    private EntityDictionary dictionary;
-    private RSQLFilterDialect filterParser;
+    private String baseURL;
 
     public DefaultResultStorageEngine() {
     }
 
-    public DefaultResultStorageEngine(Elide elide, DataStore dataStore) {
+    public DefaultResultStorageEngine(Elide elide, DataStore dataStore, String baseURL) {
         this.elide = elide;
         this.dataStore = dataStore;
+        this.baseURL = baseURL;
     }
 
     @Override
-    public AsyncQueryResultStorage storeResults(String asyncQueryID, String responseBody) {
+    public URL storeResults(String asyncQueryID, String responseBody) {
         byte[] temp = responseBody.getBytes();
         Blob response = null;
         try {
@@ -70,12 +60,15 @@ public class DefaultResultStorageEngine implements ResultStorageEngine {
         asyncQueryResultStorage.setResult(response);
 
         URL url = null;
+        String buildURL = baseURL + "/AsyncQueryResultStorage/" + asyncQueryID;
         try {
-            url = new URL("https://elide.io/asyncQueryID");
+            url = new URL(buildURL);
         } catch (MalformedURLException e) {
             log.error("Exception: {}", e);
+            throw new IllegalStateException(e);
         }
-        return asyncQueryResultStorage;
+
+        return url;
 
     }
 
@@ -86,7 +79,8 @@ public class DefaultResultStorageEngine implements ResultStorageEngine {
         AsyncQueryResultStorage asyncQueryResultStorages = null;
 
         try {
-            asyncQueryResultStorages = (AsyncQueryResultStorage) executeInTransaction(dataStore, (tx, scope) -> {
+            asyncQueryResultStorages = (AsyncQueryResultStorage) EIT.executeInTransaction(elide,
+                    dataStore, (tx, scope) -> {
 
                 EntityProjection asyncQueryCollection = EntityProjection.builder()
                         .type(AsyncQueryResultStorage.class)
@@ -111,7 +105,8 @@ public class DefaultResultStorageEngine implements ResultStorageEngine {
         AsyncQueryResultStorage asyncQueryResultStorages = null;
 
         try {
-            asyncQueryResultStorages = (AsyncQueryResultStorage) executeInTransaction(dataStore, (tx, scope) -> {
+            asyncQueryResultStorages = (AsyncQueryResultStorage) EIT.executeInTransaction(elide,
+                    dataStore, (tx, scope) -> {
 
                 EntityProjection asyncQueryCollection = EntityProjection.builder()
                         .type(AsyncQueryResultStorage.class)
@@ -139,7 +134,7 @@ public class DefaultResultStorageEngine implements ResultStorageEngine {
         Collection<AsyncQueryResultStorage> asyncQueryResultStorages = null;
 
         try {
-            asyncQueryResultStorages = (Collection<AsyncQueryResultStorage>) executeInTransaction(dataStore,
+            asyncQueryResultStorages = (Collection<AsyncQueryResultStorage>) EIT.executeInTransaction(elide, dataStore,
                     (tx, scope) -> {
 
                         EntityProjection asyncQueryCollection = EntityProjection.builder()
@@ -161,31 +156,5 @@ public class DefaultResultStorageEngine implements ResultStorageEngine {
             log.error("Exception: {}", e);
         }
         return asyncQueryResultStorages;
-    }
-
-    /**
-     * This method creates a transaction from the datastore, performs the DB action using
-     * a generic functional interface and closes the transaction.
-     * @param dataStore Elide datastore retrieved from Elide object
-     * @param action Functional interface to perform DB action
-     * @return Object Returns Entity Object (AsyncQueryResult or AsyncResult)
-     */
-    protected Object executeInTransaction(DataStore dataStore, Transactional action) {
-        log.debug("executeInTransaction");
-        Object result = null;
-        try (DataStoreTransaction tx = dataStore.beginTransaction()) {
-            JsonApiDocument jsonApiDoc = new JsonApiDocument();
-            MultivaluedMap<String, String> queryParams = new MultivaluedHashMap<String, String>();
-            RequestScope scope = new RequestScope("query", NO_VERSION, jsonApiDoc,
-                    tx, null, queryParams, elide.getElideSettings());
-            result = action.execute(tx, scope);
-            tx.flush(scope);
-            tx.commit(scope);
-        } catch (IOException e) {
-            log.error("IOException: {}", e);
-        } catch (Exception e) {
-            log.error("Exception: {}", e);
-        }
-        return result;
     }
 }

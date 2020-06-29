@@ -28,6 +28,7 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -43,7 +44,6 @@ import javax.ws.rs.core.MultivaluedMap;
  */
 @Slf4j
 @Data
-
 public class AsyncQueryThread implements Callable<AsyncQueryResult> {
 
     private AsyncQuery queryObj;
@@ -61,17 +61,17 @@ public class AsyncQueryThread implements Callable<AsyncQueryResult> {
     }
 
     public AsyncQueryThread(AsyncQuery queryObj, User user, Elide elide, QueryRunner runner,
-            AsyncQueryDAO asyncQueryDao, String apiVersion) {
+            AsyncQueryDAO asyncQueryDao, String apiVersion, ResultStorageEngine resultStorageEngine) {
         this.queryObj = queryObj;
         this.user = user;
         this.elide = elide;
         this.runner = runner;
         this.asyncQueryDao = asyncQueryDao;
         this.apiVersion = apiVersion;
+        this.resultStorageEngine = resultStorageEngine;
     }
 
-
-   /**
+    /**
     * This is the main method which processes the Async Query request, executes the query and updates
     * values for AsyncQuery and AsyncQueryResult models accordingly.
     * @return AsyncQueryResult
@@ -82,6 +82,9 @@ public class AsyncQueryThread implements Callable<AsyncQueryResult> {
 
         ElideResponse response = null;
         Integer recCount = null;
+
+        Date startTime = new Date();
+
         log.debug("AsyncQuery Object from request: {}", queryObj);
         if (queryObj.getQueryType().equals(QueryType.JSONAPI_V1_0)) {
             MultivaluedMap<String, String> queryParams = getQueryParams(queryObj.getQuery());
@@ -108,25 +111,34 @@ public class AsyncQueryThread implements Callable<AsyncQueryResult> {
             throw new NoHttpResponseException("Response for request returned as null");
         }
 
+        long timeElapsed = ((new Date()).getTime() - startTime.getTime());
+        long asyncAfterMilliSeconds = queryObj.getAsyncAfterSeconds() * 1000;
+
         // Create AsyncQueryResult entry for AsyncQuery
 
         queryResultObj = new AsyncQueryResult();
         queryResultObj.setHttpStatus(response.getResponseCode());
-        queryResultObj.setResponseBody(response.getBody());
         queryResultObj.setContentLength(response.getBody().length());
         queryResultObj.setRecordCount(recCount);
-        queryResultObj.setResultType(ResultType.EMBEDDED);
         queryResultObj.setCompletedOn(new Date());
 
-        String jsonToCSV = convertJsonToCSV(response.getBody());
+        if (timeElapsed - asyncAfterMilliSeconds > 0) {
+            String jsonToCSV = convertJsonToCSV(response.getBody());
+            URL url = null;
+            if (queryObj.getResultFormatType() == ResultFormatType.CSV) {
+                url = resultStorageEngine.storeResults(queryObj.getId(), jsonToCSV);
+            }
+            else {
+                url = resultStorageEngine.storeResults(queryObj.getId(), response.getBody());
+            }
 
-        resultStorageEngine = new DefaultResultStorageEngine();
-        if (queryObj.getResultFormatType() == ResultFormatType.CSV) {
-            resultStorageEngine.storeResults(queryObj.getId(), jsonToCSV);
+            queryResultObj.setResultType(ResultType.DOWNLOAD);
+            queryResultObj.setResponseBody(url.toString());
+        } else {
+            queryResultObj.setResultType(ResultType.EMBEDDED);
+            queryResultObj.setResponseBody(response.getBody());
         }
-        else {
-            resultStorageEngine.storeResults(queryObj.getId(), response.getBody());
-        }
+
         return queryResultObj;
     }
 
@@ -198,7 +210,7 @@ public class AsyncQueryThread implements Callable<AsyncQueryResult> {
     }
 
     /**
-     * This method converts the JSON response to a CSV response type
+     * This method converts the JSON response to a CSV response type.
      * @param jsonStr is the response.getBody() of the query
      * @return retuns a string which nis in CSV format
      */

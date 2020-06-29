@@ -8,6 +8,7 @@ package com.yahoo.elide.async.service;
 
 import com.yahoo.elide.async.models.AsyncQueryResultStorage;
 
+import java.net.URL;
 import java.util.Collection;
 
 /**
@@ -21,7 +22,7 @@ public interface ResultStorageEngine {
      * @param responseBody is the result obtained by running the query
      * @return it returns the URL from where we can access the result of the query
      */
-    public AsyncQueryResultStorage storeResults(String asyncQueryID, String responseBody);
+    public URL storeResults(String asyncQueryID, String responseBody);
 
     /**
      * Searches for the query with ID as AsyncQueryID in the AsyncQueryResultStorage table and returns the record.
