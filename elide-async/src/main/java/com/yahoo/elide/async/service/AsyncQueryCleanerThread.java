@@ -6,6 +6,7 @@
 package com.yahoo.elide.async.service;
 
 import com.yahoo.elide.Elide;
+import com.yahoo.elide.async.models.AsyncQuery;
 import com.yahoo.elide.async.models.QueryStatus;
 
 import lombok.AllArgsConstructor;
@@ -15,7 +16,9 @@ import lombok.extern.slf4j.Slf4j;
 import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
+import java.util.Iterator;
 
 /**
  * Runnable thread for updating AsyncQueryThread status.
@@ -31,6 +34,7 @@ public class AsyncQueryCleanerThread implements Runnable {
     private Elide elide;
     private int queryCleanupDays;
     private AsyncQueryDAO asyncQueryDao;
+    private ResultStorageEngine resultStorageEngine;
 
     @Override
     public void run() {
@@ -48,7 +52,13 @@ public class AsyncQueryCleanerThread implements Runnable {
 
         String filterExpression = "createdOn=le='" + cleanupDateFormatted + "'";
 
-        asyncQueryDao.deleteAsyncQueryAndResultCollection(filterExpression);
+        Collection<AsyncQuery> asyncQueryList = asyncQueryDao.deleteAsyncQueryAndResultCollection(filterExpression);
+        Iterator itr = asyncQueryList.iterator();
+
+        while (itr.hasNext()) {
+            AsyncQuery query = (AsyncQuery) itr.next();
+            resultStorageEngine.deleteResultsByID(query.getId());
+        }
 
     }
 

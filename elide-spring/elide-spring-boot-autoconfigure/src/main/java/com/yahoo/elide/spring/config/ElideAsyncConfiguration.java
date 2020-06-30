@@ -78,9 +78,9 @@ public class ElideAsyncConfiguration {
     @ConditionalOnMissingBean
     @ConditionalOnProperty(prefix = "elide.async", name = "cleanupEnabled", matchIfMissing = false)
     public AsyncCleanerService buildAsyncCleanerService(Elide elide, ElideConfigProperties settings,
-            AsyncQueryDAO asyncQueryDao) {
+            AsyncQueryDAO asyncQueryDao, ResultStorageEngine resultStorageEngine) {
         AsyncCleanerService.init(elide, settings.getAsync().getMaxRunTimeMinutes(),
-                settings.getAsync().getQueryCleanupDays(), asyncQueryDao);
+                settings.getAsync().getQueryCleanupDays(), asyncQueryDao, resultStorageEngine);
         return AsyncCleanerService.getInstance();
     }
 
