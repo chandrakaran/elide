@@ -12,6 +12,9 @@ elide:
   swagger:
     path: /doc
     enabled: true
+  download:
+    path: /download
+    enabled: true
   async:
     enabled: true
     threadPoolSize: 7

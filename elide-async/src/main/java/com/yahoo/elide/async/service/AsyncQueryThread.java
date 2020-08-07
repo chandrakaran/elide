@@ -181,6 +181,7 @@ public class AsyncQueryThread implements Callable<AsyncQueryResult> {
             json2csv = flatMe.json2Sheet().headerSeparator("_").getJsonAsSheet();
             for (Object[] obj : json2csv) {
                 str.append(Arrays.toString(obj));
+                str.append(System.getProperty("line.separator"));
             }
         } catch (Exception e) {
             log.debug("Exception while converting to CSV: {}", e.getMessage());
