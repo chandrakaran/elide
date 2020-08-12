@@ -6,6 +6,7 @@
 package com.yahoo.elide.async.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -23,6 +24,7 @@ import com.yahoo.elide.core.DataStoreTransaction;
 import com.yahoo.elide.core.EntityDictionary;
 import com.yahoo.elide.core.filter.dialect.RSQLFilterDialect;
 import com.yahoo.elide.security.checks.Check;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -85,12 +87,24 @@ public class DefaultResultStorageEngineTest {
     }
 
     @Test
+    public void testStoreResultsExceptionWithNullURL() throws MalformedURLException {
+        String responseBody = "responseBody";
+        byte[] testResponse = responseBody.getBytes();
+        String asyncQueryID = "asyncQueryID";
+        String downloadURL = null;
+        when(asyncQueryResultStorage.getId()).thenReturn(asyncQueryID);
+
+        assertThrows(IllegalStateException.class, () -> {
+            defaultResultStorageEngine.storeResults(asyncQueryResultStorage.getId(), testResponse, downloadURL);
+        });
+    }
+
+    @Test
     public void testGetResultsByID() {
         String id = "id";
         defaultResultStorageEngine.getResultsByID(id);
 
         verify(tx, times(1)).loadObject(any(), any(), any());
-
     }
 
     @Test
@@ -103,6 +117,5 @@ public class DefaultResultStorageEngineTest {
         defaultResultStorageEngine.deleteResultsCollection(asyncQueryCollection);
 
         verify(tx, times(3)).loadObject(any(), any(), any());
-
     }
 }

@@ -81,6 +81,7 @@ public class DefaultResultStorageEngine implements ResultStorageEngine {
             url = new URL(buildURL);
         } catch (MalformedURLException e) {
             log.error("Exception: {}", e);
+            //Results persisted, unable to generate URL
             throw new IllegalStateException(e);
         }
         return url;

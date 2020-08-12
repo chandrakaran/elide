@@ -127,10 +127,8 @@ public class AsyncQueryThread implements Callable<AsyncQueryResult> {
         queryResultObj.setCompletedOn(new Date());
 
         URL url = null;
-        String tempResult = response.getBody();
-        if (queryObj.getResultFormatType() == ResultFormatType.CSV) {
-            tempResult = convertJsonToCSV(response.getBody());
-        }
+        String tempResult = queryObj.getResultFormatType() == ResultFormatType.CSV
+                ? convertJsonToCSV(response.getBody()) : response.getBody();
 
         if (queryObj.getResultType() == ResultType.DOWNLOAD) {
             String baseURL = baseURLEndPoint != null ? getBasePath(baseURLEndPoint) : null;
