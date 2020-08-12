@@ -256,7 +256,7 @@ public class AsyncQueryThreadTest {
     public void testConvertJsonToCSV2() throws Exception {
 
         String csvStr = "ResponseBody";
-        assertThrows(InvalidJsonException.class, () -> {
+        assertThrows(IllegalStateException.class, () -> {
             String jsonStr = "ResponseBody";
 
             AsyncQuery queryObj = new AsyncQuery();

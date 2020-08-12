@@ -58,7 +58,7 @@ public class AsyncQueryThread implements Callable<AsyncQueryResult> {
     private String downloadBasePath;
 
     @Override
-    public AsyncQueryResult call() throws Exception {
+    public AsyncQueryResult call() throws URISyntaxException, IOException {
         return processQuery();
     }
 
@@ -80,10 +80,10 @@ public class AsyncQueryThread implements Callable<AsyncQueryResult> {
      * This is the main method which processes the Async Query request, executes the query and updates
      * values for AsyncQuery and AsyncQueryResult models accordingly.
      * @return AsyncQueryResult
-     * @throws Exception Thrown by JFlat
-     * @throws NoHttpResponseException Thrown by processQuery
+     * @throws URISyntaxException URISyntaxException
+     * @throws IOException IOException
      */
-    protected AsyncQueryResult processQuery() throws Exception {
+    protected AsyncQueryResult processQuery() throws URISyntaxException, IOException {
         UUID requestId = UUID.fromString(queryObj.getRequestId());
 
         ElideResponse response = null;
@@ -168,18 +168,23 @@ public class AsyncQueryThread implements Callable<AsyncQueryResult> {
      * This method converts the JSON response to a CSV response type.
      * @param jsonStr is the response.getBody() of the query
      * @return retuns a string which nis in CSV format
-     * @throws Exception Exception thrown by JFlat
+     * @throws IllegalStateException Exception thrown
      */
-    protected String convertJsonToCSV(String jsonStr) throws Exception {
+    protected String convertJsonToCSV(String jsonStr) {
         if (jsonStr == null) {
             return null;
         }
         StringBuilder str = new StringBuilder();
         JFlat flatMe = new JFlat(jsonStr);
-        List<Object[]> json2csv = flatMe.json2Sheet().headerSeparator("_").getJsonAsSheet();
-
-        for (Object[] obj : json2csv) {
-            str.append(Arrays.toString(obj));
+        List<Object[]> json2csv;
+        try {
+            json2csv = flatMe.json2Sheet().headerSeparator("_").getJsonAsSheet();
+            for (Object[] obj : json2csv) {
+                str.append(Arrays.toString(obj));
+            }
+        } catch (Exception e) {
+            log.debug("Exception while converting to CSV: {}", e.getMessage());
+            throw new IllegalStateException(e);
         }
 
         return str.toString();
