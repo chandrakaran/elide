@@ -58,6 +58,7 @@ public class AsyncQueryCleanerThreadTest {
         assertEquals(asyncQueryDao, cleanerThread.getAsyncQueryDao());
         assertEquals(7, cleanerThread.getMaxRunTimeMinutes());
         assertEquals(7, cleanerThread.getQueryCleanupDays());
+        assertEquals(resultStorageEngine, cleanerThread.getResultStorageEngine());
     }
 
     @Test

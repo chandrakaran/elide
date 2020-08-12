@@ -117,5 +117,6 @@ public class DefaultResultStorageEngineTest {
         defaultResultStorageEngine.deleteResultsCollection(asyncQueryCollection);
 
         verify(tx, times(3)).loadObject(any(), any(), any());
+        verify(tx, times(3)).delete(any(), any());
     }
 }
