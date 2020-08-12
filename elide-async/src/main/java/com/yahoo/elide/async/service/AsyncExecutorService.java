@@ -39,6 +39,7 @@ import javax.inject.Inject;
 public class AsyncExecutorService {
 
     private final int defaultThreadpoolSize = 6;
+    private static final String FORWARD_SLASH = "/";
 
     private Elide elide;
     private Map<String, QueryRunner> runners;
@@ -65,8 +66,8 @@ public class AsyncExecutorService {
         updater = Executors.newFixedThreadPool(threadPoolSize == null ? defaultThreadpoolSize : threadPoolSize);
         this.asyncQueryDao = asyncQueryDao;
         this.resultStorageEngine = resultStorageEngine;
-        this.downloadBasePath = downloadBasePath != null && !downloadBasePath.startsWith("/") ? "/" + downloadBasePath
-                : downloadBasePath;
+        this.downloadBasePath = downloadBasePath != null && !downloadBasePath.startsWith(FORWARD_SLASH)
+                ? FORWARD_SLASH + downloadBasePath : downloadBasePath;
     }
 
     /**
