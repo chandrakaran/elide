@@ -27,7 +27,7 @@ import com.yahoo.elide.datastores.aggregation.query.ColumnProjection;
 import com.yahoo.elide.datastores.aggregation.query.MetricProjection;
 import com.yahoo.elide.datastores.aggregation.query.TimeDimensionProjection;
 import com.yahoo.elide.datastores.aggregation.queryengines.sql.SQLQueryEngine;
-import com.yahoo.elide.request.Argument;
+//import com.yahoo.elide.request.Argument;
 import com.yahoo.elide.utils.ClassScanner;
 
 import org.hibernate.Session;
@@ -125,7 +125,8 @@ public abstract class SQLUnitTest {
         return engine.constructTimeDimensionProjection(
                 dimension,
                 dimension.getName(),
-                Collections.singletonMap("grain", Argument.builder().name("grain").value(grain).build()));
+                Collections.emptyMap());
+                //Collections.singletonMap("grain", Argument.builder().name("grain").value(grain).build()));
     }
 
     public static MetricProjection invoke(Metric metric) {
